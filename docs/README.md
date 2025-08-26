@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the Jenkins pipeline defined in the provided configuration. The current pipeline definition is **minimal** and does not specify an agent, stages, environment variables, or post‑actions. Consequently, the documentation outlines the intended structure and provides guidance on how to extend and use the pipeline once the missing sections are populated.
+This document describes the Jenkins pipeline defined in the provided configuration. The current pipeline definition is minimal and does not contain any agents, stages, environment variables, or post‑actions. The sections below outline the intended structure and provide guidance on how to extend and use the pipeline once the missing components are added.
 
 ---
 
@@ -11,115 +11,148 @@ This document describes the Jenkins pipeline defined in the provided configurati
 | Item | Description |
 |------|-------------|
 | **Purpose** | To automate the build, test, and deployment workflow for the project. |
-| **Objectives** | • Provide a repeatable CI/CD process.<br>• Ensure code quality through automated testing.<br>• Deploy artifacts to the target environment in a controlled manner. |
+| **Objectives** | • Ensure consistent builds across environments.<br>• Run automated tests and quality checks.<br>• Deploy artifacts to the target environment (e.g., staging, production). |
 
-*Note: The concrete objectives (e.g., specific build tools, test suites, deployment targets) should be added once the pipeline stages are defined.*
+*Note: The actual objectives may be refined once the pipeline stages and steps are defined.*
 
 ---
 
-## 2. Agent Configuration
+## 2. Pipeline Structure
 
-- **Current Setting:** `null` (no agent defined)
-- **Recommended Action:** Specify an appropriate Jenkins agent (e.g., `any`, a Docker container, or a labeled node) to run the pipeline steps.
+### 2.1 Agent
+
+- **Current configuration:** `null` (no agent specified).
+- **Typical usage:** Define an agent (e.g., `any`, a specific label, or a Docker container) to allocate an executor for the pipeline.
 
 ```groovy
 pipeline {
-    agent any          // Example: run on any available agent
+    agent any               // Example: run on any available agent
     // or
-    agent {
-        label 'linux-build'   // Run on nodes with the given label
+    agent { label 'linux' } // Example: run on agents with the "linux" label
+}
+```
+
+### 2.2 Stages
+
+| Stage | Purpose | Key Activities |
+|-------|---------|----------------|
+| *None defined* | No stages are currently present. | – |
+
+**Recommended approach:** Add stages such as `Checkout`, `Build`, `Test`, `Package`, `Deploy`, etc. Each stage should contain a `steps` block with the commands required to accomplish its purpose.
+
+```groovy
+stage('Build') {
+    steps {
+        sh 'mvn clean compile'
+    }
+}
+```
+
+### 2.3 Environment Variables
+
+| Variable | Default / Example | Description |
+|----------|-------------------|-------------|
+| *None defined* | – | – |
+
+**Typical usage:** Declare variables that are needed across multiple stages (e.g., credentials, version numbers, paths).
+
+```groovy
+environment {
+    JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
+    MAVEN_OPTS = '-Xmx2g'
+}
+```
+
+### 2.4 Post Actions
+
+| Condition | Action | Description |
+|-----------|--------|-------------|
+| *None defined* | – | – |
+
+**Common post sections:** `always`, `success`, `failure`, `unstable`, `changed`. Use them to clean up, archive artifacts, or send notifications.
+
+```groovy
+post {
+    always {
+        cleanWs()
+    }
+    success {
+        mail to: 'team@example.com', subject: "Build SUCCESS", body: "Good news!"
     }
 }
 ```
 
 ---
 
-## 3. Stages Overview
+## 3. Detailed Step Explanations (Template)
 
-> **Status:** No stages are defined in the current pipeline.
+Below is a template for how individual steps should be documented once they are added to the pipeline.
 
-A typical pipeline includes stages such as:
+| Stage | Step | Command | Role |
+|-------|------|---------|------|
+| *Stage Name* | *Step Description* | `sh 'command'` or `bat 'command'` | Explain what the command does (e.g., compile source, run tests, publish artifacts). |
 
-| Stage | Purpose | Typical Steps |
-|-------|---------|---------------|
-| **Checkout** | Retrieve source code from SCM | `checkout scm` |
-| **Build** | Compile the application | `sh 'mvn clean package'` |
-| **Test** | Execute unit/integration tests | `sh 'mvn test'` |
-| **Package** | Create distributable artifacts | `archiveArtifacts` |
-| **Deploy** | Deploy to a test or production environment | `sh './deploy.sh'` |
-| **Cleanup** | Remove temporary files, release resources | `cleanWs()` |
+*Example:*
 
-*Add concrete stages and step definitions to the `stages` array in the pipeline JSON when ready.*
+| Stage | Step | Command | Role |
+|-------|------|---------|------|
+| Build | Compile source | `sh 'mvn clean compile'` | Compiles the Java source code using Maven. |
+| Test  | Unit tests | `sh 'mvn test'` | Executes unit tests and generates a test report. |
 
 ---
 
-## 4. Detailed Step Explanations
+## 4. Usage Instructions for Developers
 
-Since no steps are present, the following are common examples that can be incorporated into each stage:
+### 4.1 Triggering the Pipeline
 
-| Step | Command | Role |
-|------|---------|------|
-| **Checkout SCM** | `checkout scm` | Pulls the latest code from the configured source repository. |
-| **Shell Execution** | `sh 'command'` | Executes a shell command on the agent (e.g., building, testing). |
-| **Archive Artifacts** | `archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true` | Stores build outputs for later retrieval. |
-| **Publish Test Results** | `junit 'target/surefire-reports/*.xml'` | Publishes JUnit test results to Jenkins. |
-| **Docker Build** | `docker.build('my-image:${env.BUILD_NUMBER}')` | Builds a Docker image from a Dockerfile. |
-| **Post Actions** | `post { success { ... } failure { ... } }` | Runs actions based on the pipeline outcome (e.g., notifications). |
+| Method | Description |
+|--------|-------------|
+| **Manual start** | Open the Jenkins job page and click **Build Now**. |
+| **SCM webhook** | Configure a webhook in your Git repository to trigger the pipeline on push/PR events. |
+| **Scheduled** | Add a `triggers` block (e.g., `cron('H H * * *')`) to run the pipeline on a schedule. |
 
----
+### 4.2 Monitoring Execution
 
-## 5. Usage Instructions for Developers
+1. **Console Output** – View real‑time logs from the **Console Output** link on the build page.  
+2. **Stage View** – Use the **Stage View** plugin (if installed) to see a visual representation of stage progress.  
+3. **Blue Ocean** – For a richer UI, open the pipeline in **Blue Ocean**.
 
-### 5.1 Triggering the Pipeline
-- **Manual Trigger:** Click **Build Now** on the pipeline’s Jenkins job page.
-- **SCM Trigger:** Configure a webhook or poll SCM to start the pipeline on code changes.
-- **Parameterized Trigger:** Add `parameters {}` block to accept inputs (e.g., branch name, environment).
+### 4.3 Troubleshooting Common Issues
 
-### 5.2 Monitoring Execution
-- **Console Output:** View real‑time logs via the **Console Output** link.
-- **Stage View:** Use the **Stage View** plugin to see progress per stage.
-- **Blue Ocean:** For a modern UI, open the pipeline in Blue Ocean.
-
-### 5.3 Troubleshooting Common Issues
-| Symptom | Likely Cause | Suggested Fix |
-|---------|--------------|---------------|
-| Pipeline fails at checkout | Incorrect SCM credentials or URL | Verify `credentialsId` and repository URL. |
-| Shell command not found | Missing tool on the agent | Install required tool or use a Docker container with the tool pre‑installed. |
-| Artifact not archived | Wrong file pattern | Adjust the `artifacts` pattern to match the actual output files. |
-| Post actions not executed | `post` block missing or mis‑indented | Ensure `post` is at the correct level in the pipeline syntax. |
+| Symptom | Possible Cause | Resolution |
+|---------|----------------|------------|
+| Build fails with “No agent found” | `agent` is not defined or no matching node is available. | Define an appropriate `agent` or ensure a node with the required label exists. |
+| Steps cannot find a command (e.g., `mvn` not found) | Required tool not installed on the agent. | Install the tool or configure the tool location via `tool` directive. |
+| Environment variable is empty | Variable not defined or not exported. | Add the variable to the `environment` block or pass it as a parameter. |
+| Post actions never run | `post` block missing or incorrectly scoped. | Add a `post` section at the top level of the pipeline. |
 
 ---
 
-## 6. Environment Variables
+## 5. Environment Variables Reference
 
-> **Status:** No environment variables are defined.
+| Variable | Scope | Default / Example | Description |
+|----------|-------|-------------------|-------------|
+| *None defined* | – | – | – |
 
-You can declare variables in the `environment` block to make them available to all stages:
+**Adding a variable:**
 
 ```groovy
 environment {
-    JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-    MAVEN_OPTS = '-Xmx2g'
-    DEPLOY_ENV = 'staging'   // Custom variable
+    APP_VERSION = '1.2.3'          // Used for tagging Docker images
+    GIT_CREDENTIALS = credentials('git-ssh-key')
 }
 ```
 
-| Variable | Description |
-|----------|-------------|
-| `JAVA_HOME` | Path to the JDK used for builds. |
-| `MAVEN_OPTS` | JVM options for Maven execution. |
-| `DEPLOY_ENV` | Target environment for deployment (e.g., `staging`, `production`). |
+---
 
-*Add any project‑specific variables to the `environment` map in the pipeline JSON.*
+## 6. Next Steps & Recommendations
+
+1. **Define an agent** – Choose a suitable executor (label, Docker, or Kubernetes pod).  
+2. **Add stages** – Outline the CI/CD flow (e.g., Checkout → Build → Test → Package → Deploy).  
+3. **Populate environment variables** – Centralize configuration values and credentials.  
+4. **Implement post actions** – Ensure cleanup, artifact archiving, and notifications are in place.  
+5. **Version control** – Store the `Jenkinsfile` in the repository root and enable branch‑specific pipelines if needed.
 
 ---
 
-## 7. Next Steps
-
-1. **Define the Agent** – Choose an appropriate node or Docker image.
-2. **Add Stages** – Populate the `stages` array with the required workflow steps.
-3. **Set Environment Variables** – Include any credentials, paths, or configuration flags needed.
-4. **Implement Post‑Actions** – Add notifications, cleanup, or archiving logic.
-5. **Validate** – Run the pipeline in a test branch to ensure all steps execute as expected.
-
-Once these elements are in place, update this documentation to reflect the concrete implementation.
+*This documentation reflects the current state of the pipeline configuration. As stages, steps, and environment variables are added, update the corresponding sections to keep the documentation accurate and useful for the development team.*
