@@ -1,4 +1,3 @@
-
 pipeline {
     agent {
         // Use a specific, controlled agent label to limit where the pipeline runs
