@@ -2,13 +2,14 @@
 
 ## Overview
 
-This pipeline is designed to run on a **controlled, secure agent** (`secure-agent`) and provides a minimal, auditable build flow. Its primary objectives are:
+This pipeline is designed to run on a **controlled, secure agent** (`secure-agent`) and provides a minimal, auditable build process. Its primary objectives are:
 
-- **Enforce execution on a trusted node** to reduce exposure to insecure environments.  
-- **Expose required credentials** (`API_TOKEN`) and enforce security flags (`DISABLE_INSECURE_FEATURES`).  
-- **Perform deterministic post‑build actions** such as workspace cleanup, audit logging, and failure notifications.
+- Execute builds in a restricted environment to reduce attack surface.  
+- Capture and report build status for compliance and audit purposes.  
+- Clean up the workspace securely after each run.  
+- Notify the team on failures with limited, non‑sensitive details.
 
-> **Note:** The `stages` section is empty in the supplied definition. Consequently, the pipeline currently performs no build or test steps. Add stages as needed for your project’s CI/CD workflow.
+> **Note:** The `stages` section is currently empty. Add stages as needed for your project's build, test, and deployment steps.
 
 ---
 
@@ -16,47 +17,34 @@ This pipeline is designed to run on a **controlled, secure agent** (`secure-agen
 
 | Setting | Value | Description |
 |---------|-------|-------------|
-| **Label** | `secure-agent` | Restricts the pipeline to run only on agents that carry the `secure-agent` label. This ensures a known, hardened execution environment. |
-
-```groovy
-agent {
-    label 'secure-agent'
-}
-```
+| **Label** | `secure-agent` | Restricts the pipeline to run only on agents that have this label, ensuring a known, hardened execution environment. |
 
 ---
 
 ## Environment Variables
 
-| Variable | Source | Default / Value | Purpose |
-|----------|--------|----------------|---------|
-| `API_TOKEN` | `credentials('my-api-token')` | (masked) | Securely injects an API token from Jenkins Credentials Store. Used by downstream steps that need to call external services. |
-| `DISABLE_INSECURE_FEATURES` | `'true'` | `true` | Global flag to disable any legacy or insecure functionality within the pipeline or invoked scripts. |
+| Variable | Value / Source | Purpose |
+|----------|----------------|---------|
+| `API_TOKEN` | `credentials('my-api-token')` | Securely injects an API token stored in Jenkins Credentials. Used by downstream steps that need to authenticate against external services. |
+| `DISABLE_INSECURE_FEATURES` | `'true'` | A flag that can be read by scripts to disable any optional insecure functionality. |
 
-```groovy
-environment {
-    API_TOKEN = credentials('my-api-token')
-    DISABLE_INSECURE_FEATURES = 'true'
-}
-```
+*All environment variables are automatically exported to each step of the pipeline.*
 
 ---
 
-## Stages
+## Pipeline Stages
 
 > **Current State:** No stages are defined (`"stages": []`).  
-> **Action Required:** Populate the `stages` array with the necessary build, test, packaging, or deployment steps for your project.
+> To extend this pipeline, add stage blocks such as `Build`, `Test`, `Deploy`, etc., following the standard Declarative Pipeline syntax.
 
-*Example placeholder:*
+### Example Stage Skeleton
 
 ```groovy
-stages {
-    stage('Build') {
-        steps {
-            // build commands here
-        }
+stage('Build') {
+    steps {
+        // Insert build commands here
+        sh 'make build'
     }
-    // Additional stages …
 }
 ```
 
@@ -64,24 +52,46 @@ stages {
 
 ## Post‑Build Actions
 
-The pipeline defines two post‑conditions: **always** and **failure**.
+Post actions run after the main pipeline execution, regardless of success or failure.
 
-### 1. `always`
+### `always`
 
-Executed after every run, regardless of success or failure.
+Executed after every run.
 
-| Step | Command | Explanation |
-|------|---------|-------------|
-| **Workspace Cleanup** | `cleanWs()` | Securely deletes the workspace to prevent residue data from persisting on the agent. |
-| **Audit Log** | ```groovy\nscript {\n    def buildStatus = currentBuild.result ?: 'SUCCESS'\n    echo \"Build ${env.BUILD_NUMBER} completed with status: ${buildStatus}\"\n}\n``` | Emits a concise log entry containing the build number and final status. This message can be forwarded to external logging services via Jenkins system log configuration. |
+```groovy
+// Clean up workspace securely
+cleanWs()
 
-### 2. `failure`
+// Send audit log to a secure logging service
+script {
+    def buildStatus = currentBuild.result ?: 'SUCCESS'
+    echo "Build ${env.BUILD_NUMBER} completed with status: ${buildStatus}"
+}
+```
+
+**Key Steps**
+
+| Step | Command | Role |
+|------|---------|------|
+| `cleanWs()` | Jenkins built‑in step | Deletes all files in the workspace, ensuring no residual data remains. |
+| `script { … }` | Groovy script block | Retrieves the final build status (`SUCCESS` if not set) and logs a concise audit message containing the build number and status. |
+
+### `failure`
 
 Executed **only** when the pipeline ends with a failure.
 
-| Step | Command | Explanation |
-|------|---------|-------------|
-| **Failure Notification** | ```groovy\nmail to: 'team@example.com',\n     subject: \"Build ${env.BUILD_NUMBER} Failed\",\n     body: \"Check Jenkins for details: ${env.BUILD_URL}\" \n``` | Sends an email to the designated team with a minimal payload (build number and URL) to avoid leaking sensitive details. |
+```groovy
+// Notify on failure with restricted details
+mail to: 'team@example.com',
+     subject: "Build ${env.BUILD_NUMBER} Failed",
+     body: "Check Jenkins for details: ${env.BUILD_URL}"
+```
+
+**Key Steps**
+
+| Step | Command | Role |
+|------|---------|------|
+| `mail` | Jenkins email step | Sends a notification to the designated team address, providing the build number and a link to the Jenkins build page for further investigation. |
 
 ---
 
@@ -89,55 +99,49 @@ Executed **only** when the pipeline ends with a failure.
 
 ### Triggering the Pipeline
 
-| Method | Command / UI Action |
-|--------|---------------------|
-| **Manual** | Click **Build Now** on the pipeline’s Jenkins job page. |
-| **SCM Hook** | Configure your repository webhook (e.g., GitHub, GitLab) to trigger the job on push/PR events. |
-| **Parameterized Build** | If you later add parameters, use the **Build with Parameters** UI or the Jenkins REST API (`POST /job/<job-name>/buildWithParameters`). |
+| Method | Description |
+|--------|-------------|
+| **Manual** | Click **Build Now** on the pipeline job page in Jenkins. |
+| **SCM Change** | Configure the job with a Git (or other SCM) webhook to trigger on push/PR events. |
+| **Parameterized Build** | If you add parameters later, you can trigger via the **Build with Parameters** UI or API. |
 
 ### Monitoring Execution
 
-1. **Console Output** – Access the live console log from the build’s page to view step‑by‑step output.  
+1. **Console Output** – Click the build number in Jenkins to view real‑time logs.  
 2. **Blue Ocean** – Use the Blue Ocean UI for a visual representation of stages (once stages are added).  
-3. **Build Summary** – The `always` post block logs a concise status line (`Build #X completed with status: Y`).  
+3. **Build Summary** – The `always` post block logs a concise audit line (`Build #X completed with status: Y`).  
 
 ### Troubleshooting Common Issues
 
 | Symptom | Likely Cause | Resolution |
 |---------|--------------|------------|
-| **Pipeline never starts** | Agent with label `secure-agent` unavailable. | Verify that at least one online agent carries the `secure-agent` label. |
-| **Missing `API_TOKEN`** | Credential ID typo or missing credential. | Ensure a credential named `my-api-token` exists in **Jenkins > Credentials** and is accessible to the pipeline’s folder/job. |
-| **Workspace not cleaned** | `cleanWs()` step skipped due to early abort. | Check for `catchError` or `timeout` blocks that may bypass `post` sections; adjust as needed. |
-| **Failure email not sent** | Mail plugin misconfigured or SMTP unreachable. | Verify Jenkins **Configure System → E‑mail Notification** settings and test with a simple `mail` step in a sandbox job. |
+| Build fails immediately with “No stages defined” | Empty `stages` array | Add at least one stage with steps that perform work. |
+| Credential not found (`my-api-token`) | Missing or mis‑named credential in Jenkins | Verify the credential exists under **Credentials → System → Global credentials** and that the ID matches `my-api-token`. |
+| Email not sent on failure | SMTP not configured or mail step mis‑configured | Check **Manage Jenkins → Configure System → E‑mail Notification** and ensure the `mail` step syntax matches your Jenkins version. |
+| Workspace not cleaned | `cleanWs()` skipped due to early abort | Ensure the pipeline does not exit with `error` before reaching the `post` block, or add `catchError` around critical steps. |
 
 ---
 
 ## Extending the Pipeline
 
-When adding stages, follow these best practices:
+1. **Add Stages** – Insert stage blocks under the `stages` array to perform actual work (e.g., compile, test, package).  
+2. **Use Environment Variables** – Reference `API_TOKEN` and `DISABLE_INSECURE_FEATURES` in shell or Groovy steps:  
 
-1. **Label each stage clearly** (e.g., `Checkout`, `Build`, `Test`, `Deploy`).  
-2. **Wrap sensitive commands** in `withCredentials` blocks if additional secrets are required.  
-3. **Use `try / catch`** to capture errors and set `currentBuild.result` appropriately, ensuring the `post` sections behave as expected.  
-4. **Maintain the `always` cleanup** to keep the agent clean after every run.
+   ```groovy
+   sh """
+   curl -H "Authorization: Bearer ${env.API_TOKEN}" https://api.example.com/endpoint
+   """
+   ```
 
-*Sample stage skeleton:*
-
-```groovy
-stage('Checkout') {
-    steps {
-        checkout scm
-    }
-}
-```
+3. **Secure Logging** – Replace the simple `echo` in the `always` block with calls to a centralized logging service if required.  
 
 ---
 
 ## Summary
 
 - **Agent:** Runs exclusively on `secure-agent`.  
-- **Environment:** Secure token (`API_TOKEN`) and a hardening flag (`DISABLE_INSECURE_FEATURES`).  
-- **Post‑Build:** Guarantees workspace cleanup, audit logging, and failure notifications.  
-- **Current Gap:** No functional stages are defined; developers should add the required build/test steps.  
+- **Environment:** Provides a protected API token and a flag to disable insecure features.  
+- **Post‑Build:** Always cleans the workspace and logs status; on failure, sends a concise email alert.  
+- **Next Steps:** Populate the `stages` section with project‑specific build, test, and deployment steps, and adjust post‑actions as needed.
 
-By adhering to the guidelines above, teams can safely integrate this pipeline into their CI/CD process while maintaining a strong security posture.
+---
