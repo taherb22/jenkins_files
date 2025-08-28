@@ -1,38 +1,43 @@
 # Jenkins Pipeline Documentation
-## Introduction
-The purpose of this Jenkins pipeline is to automate the build, test, and deployment process of a software project. The objectives of this pipeline are to ensure consistency, reliability, and security in the software development lifecycle.
+## Overview
+The purpose of this Jenkins pipeline is to automate a series of tasks, ensuring a controlled and secure environment for build and deployment processes. The objectives of this pipeline include utilizing a specific agent label for security, setting up environment variables for API interactions and security features, and handling post-build activities such as cleanup and notification.
 
-## Pipeline Overview
-The pipeline utilizes a specific, controlled agent label (`secure-agent`) to limit where the pipeline runs, ensuring a secure and consistent environment. The pipeline consists of an empty `stages` section, which implies that the pipeline is currently not executing any specific build, test, or deployment stages. However, it does include `post` actions that are executed after the pipeline run, regardless of the outcome.
-
-## Post Actions
-The `post` section defines actions that are performed after the pipeline execution. These actions are categorized into two sections: `always` and `failure`.
-
-### Always
-The `always` section includes actions that are executed regardless of the pipeline's outcome. These actions include:
-* Cleaning up the workspace securely using the `cleanWs()` command to remove any temporary files and ensure a clean environment for future pipeline runs.
-* Sending an audit log to a secure logging service. This involves determining the build status (`buildStatus`) and echoing a message indicating the completion of the build with its corresponding status.
-
-### Failure
-The `failure` section includes actions that are executed when the pipeline fails. These actions include:
-* Notifying the team via email with restricted details. The email is sent to `team@example.com` with a subject indicating the build number and failure status. The email body includes a link to the Jenkins build URL for further details.
+## Pipeline Structure
+The pipeline is structured into several key sections:
+- **Agent**: Specifies the agent label where the pipeline will run, ensuring it's executed in a controlled environment.
+- **Environment**: Defines environment variables used throughout the pipeline.
+- **Post**: Contains actions to be taken after the build, regardless of the outcome, and specific actions for failures.
 
 ## Environment Variables
 The pipeline utilizes the following environment variables:
-* `API_TOKEN`: This variable is set to a credential (`my-api-token`) and is used for authentication purposes.
-* `DISABLE_INSECURE_FEATURES`: This variable is set to `true` and is used to disable insecure features in the pipeline.
+- **API_TOKEN**: Set to `'credentials('my-api-token')'`, this variable stores credentials for API interactions, ensuring secure authentication.
+- **DISABLE_INSECURE_FEATURES**: Set to `'true'`, this variable is used to disable insecure features, enhancing the security posture of the pipeline.
 
-## Usage Instructions
-To trigger the pipeline, follow these steps:
-1. Navigate to the Jenkins dashboard and select the pipeline.
-2. Click on the "Build Now" button to initiate the pipeline execution.
-To monitor the pipeline execution, follow these steps:
-1. Navigate to the Jenkins dashboard and select the pipeline.
-2. Click on the "Build History" tab to view the pipeline's execution history.
-3. Select a specific build to view its details, including the console output and test results.
-To troubleshoot common issues, follow these steps:
-1. Check the console output for error messages or exceptions.
-2. Verify the pipeline's configuration and environment variables.
-3. Consult the Jenkins documentation and community resources for solutions to common issues.
+## Stages
+Unfortunately, the provided pipeline data does not include specific stages. Typically, stages would outline the major phases of the pipeline, such as build, test, and deploy. Without this information, we proceed with the understanding that stages will be defined as needed for the specific requirements of the pipeline.
 
-Note: The pipeline data provided is incomplete, as it does not include any specific `stages` or build, test, or deployment steps. This documentation is based on the available information and may require updates as more details become available.
+## Post-Build Actions
+### Always
+After every build, the following actions are taken:
+- **Clean Workspace**: The `cleanWs()` command is executed to securely clean up the workspace, removing any temporary or sensitive data.
+- **Send Audit Log**: A script sends an audit log to a secure logging service. The script checks the build status and prints a message indicating the build number and its completion status.
+
+### Failure
+In the event of a build failure, the pipeline:
+- **Sends Notification**: An email is sent to `'team@example.com'` with a subject indicating the build number and failure status. The body of the email directs the team to check Jenkins for detailed information.
+
+## Usage Instructions for Developers
+### Triggering the Pipeline
+To trigger the pipeline, navigate to the Jenkins dashboard, find the pipeline job, and click on "Build Now." Alternatively, if the pipeline is configured to be triggered by code changes or other automated means, ensure that the triggering conditions are met.
+
+### Monitoring Execution
+- Navigate to the Jenkins dashboard and select the pipeline job.
+- Click on the build number you wish to monitor.
+- Use the console output to track the progress and any issues encountered during the build.
+
+### Troubleshooting Common Issues
+- **Build Failures**: Check the console output for error messages. Common issues include incorrect environment variable configurations, network connectivity problems, or failures in the build, test, or deployment stages.
+- **Environment Variable Issues**: Verify that all environment variables are correctly set and accessible within the pipeline.
+- **Notification Failures**: Ensure that the email configuration is correct and that there are no network issues preventing the email from being sent.
+
+Note: The pipeline data provided does not include specific stages, which are crucial for a comprehensive understanding of the pipeline's workflow. The documentation above is based on the available information and may need to be updated once the stages are defined.
