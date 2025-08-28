@@ -10,11 +10,6 @@ pipeline {
         // Avoid exposing environment variables unnecessarily
         DISABLE_INSECURE_FEATURES = true
     }
-
-
-
-
-    
     options {
         // Enable timestamps and build retention for auditing
         timestamps()
