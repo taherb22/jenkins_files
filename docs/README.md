@@ -4,25 +4,38 @@ The purpose of this Jenkins pipeline is to automate the build, test, and deploym
 
 ## Environment Variables
 The pipeline utilizes the following environment variables:
-* `API_TOKEN`: This variable is set to `'credentials('my-api-token')'`, which retrieves the API token from the Jenkins credentials store. The API token is used for authentication and authorization purposes.
-* `DISABLE_INSECURE_FEATURES`: This variable is set to `'true'`, which disables insecure features in the pipeline to ensure a secure execution environment.
+* `API_TOKEN`: Set to `'credentials('my-api-token')'`, this variable stores the API token used for authentication.
+* `DISABLE_INSECURE_FEATURES`: Set to `'true'`, this variable disables insecure features to enhance the security of the pipeline.
 
 ## Pipeline Stages
-Unfortunately, the pipeline data does not contain any defined stages. Typically, a pipeline would include stages such as build, test, and deploy. However, in this case, we will proceed with the available information.
+Unfortunately, the provided pipeline data does not include any stages. Typically, a pipeline would include stages such as build, test, and deployment. However, we will proceed with documenting the available information.
 
 ## Post-Build Actions
 The pipeline includes post-build actions that are executed regardless of the build result:
-* `cleanWs()`: This step cleans up the workspace securely to remove any temporary files and ensure a clean environment for future builds.
-* A script that sends an audit log to a secure logging service, including the build status and number.
+* Clean up the workspace securely using the `cleanWs()` command.
+* Send an audit log to a secure logging service. This involves:
+	+ Determining the build status using `currentBuild.result ?: 'SUCCESS'`.
+	+ Echoing a message indicating the build completion status, including the build number and status.
 
 In the event of a failure, the pipeline will:
-* Send a notification email to `team@example.com` with a subject indicating the build failure and a link to the build URL for further details.
+* Notify the team via email with restricted details, including:
+	+ The build number.
+	+ A link to the build URL on Jenkins.
 
 ## Usage Instructions
 To trigger the pipeline, follow these steps:
-1. Ensure you have the necessary permissions and access to the Jenkins instance.
-2. Navigate to the pipeline job and click the "Build Now" button.
-3. Monitor the pipeline execution by viewing the build log and console output.
-4. In case of issues, check the build log for error messages and troubleshoot accordingly.
+1. Ensure you have the necessary permissions to trigger the pipeline.
+2. Navigate to the Jenkins dashboard and locate the pipeline.
+3. Click the "Build Now" button to trigger the pipeline.
 
-Note: The pipeline data is incomplete, as it does not include any defined stages. This documentation is based on the available information, and additional stages and steps may be added in the future.
+To monitor the pipeline execution:
+1. Navigate to the Jenkins dashboard and locate the pipeline.
+2. Click on the pipeline to view its details.
+3. Monitor the build log for any issues or errors.
+
+To troubleshoot common issues:
+1. Check the build log for error messages.
+2. Verify that the environment variables are set correctly.
+3. Ensure that the agent label is correctly configured.
+
+Note: The pipeline data provided is incomplete, as it does not include any stages. This documentation is based on the available information, and additional stages may need to be added to complete the pipeline.
