@@ -15,11 +15,10 @@ pipeline {
                         error 'Branch name is required and cannot be empty'
                 }
                 
-                sh 'rm -rf * && mkdir -p build'
-                echo "Building branch: ${params.BRANCH_NAME}"
+               
 
 
-                
+
             }
         }
     }
