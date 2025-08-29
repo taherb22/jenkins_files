@@ -17,6 +17,9 @@ pipeline {
                 
                 sh 'rm -rf * && mkdir -p build'
                 echo "Building branch: ${params.BRANCH_NAME}"
+
+
+                
             }
         }
     }
