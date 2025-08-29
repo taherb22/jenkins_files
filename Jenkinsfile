@@ -3,7 +3,11 @@ pipeline {
         // Use a specific, controlled agent label to limit where the pipeline runs
         label 'secure-agent'
     }
+    
 
+
+
+    
     environment {
         // Use Jenkins credentials store instead of hardcoded values
         API_TOKEN = credentials('my-api-token')
