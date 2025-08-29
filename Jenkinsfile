@@ -3,9 +3,7 @@ pipeline {
     environment {
         AWS_SECRET_KEY = 'AKIAIOSFODNN7EXAMPLE'
     }
-
-
-
+    
     stages {
         stage('Deploy') {
             steps {
