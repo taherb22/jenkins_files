@@ -1,119 +1,160 @@
 # Jenkins Pipeline Documentation
 
-## 1. Summary
-This document describes the Jenkins pipeline defined in the provided pipeline configuration.  
-The current configuration does **not** specify an agent, any stages, environment variables, or post‑actions. Consequently, the pipeline has no executable logic at this time. The sections below outline the intended structure and provide guidance on how to complete the pipeline.
+## Overview
+
+This document describes the Jenkins pipeline defined in the provided configuration. The current pipeline definition is minimal and does not contain any agents, stages, environment variables, or post‑actions. Consequently, the documentation outlines the intended structure and provides guidance on how to extend and use the pipeline once the missing components are added.
 
 ---
 
-## 2. Pipeline Overview
+## 1. Pipeline Purpose & Objectives
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| **Agent** | *Not defined* | No execution node is specified. Add an `agent` block (e.g., `agent any` or a specific label) to tell Jenkins where to run the pipeline. |
-| **Stages** | *None* | No stages are defined. Populate the `stages` array with one or more stage objects to describe the workflow. |
-| **Environment** | *Empty* | No environment variables are set. Define any required variables in the `environment` block. |
-| **Post** | *Empty* | No post‑build actions (e.g., cleanup, notifications) are configured. Add a `post` block if needed. |
+| Item | Description |
+|------|-------------|
+| **Purpose** | Automate the build, test, and deployment workflow for the project. |
+| **Objectives** | • Ensure consistent builds across environments.<br>• Run automated tests and quality checks.<br>• Deploy artifacts to the target environment (e.g., staging, production). |
+
+*Note: The actual objectives should be refined once the pipeline stages and steps are defined.*
 
 ---
 
-## 3. Stage Overview (Currently Empty)
+## 2. Pipeline Structure
 
-> **Note:** The pipeline contains no stages. Below is a template you can use to add stages.
+### 2.1 Agent
+
+- **Current configuration:** `null` (no agent specified).
+- **Typical usage:** Define a Jenkins agent (e.g., `any`, a specific label, or a Docker container) to provide the execution environment for the pipeline.
 
 ```groovy
-stages {
-    stage('Example Stage') {
-        steps {
-            // Add step(s) here, e.g.:
-            sh 'echo "Running example step"'
-        }
+pipeline {
+    agent any               // Example: run on any available agent
+    // or
+    agent {
+        label 'linux'       // Example: run on agents with the "linux" label
     }
 }
 ```
 
-### Typical Stage Structure
+### 2.2 Stages
 
-| Element | Description |
-|---------|-------------|
-| `stage('Stage Name')` | Logical grouping of related steps. |
-| `steps { … }` | Individual commands or scripts executed within the stage. |
-| `parallel { … }` (optional) | Define parallel branches if tasks can run concurrently. |
-| `when { … }` (optional) | Conditional execution based on branch, environment, etc. |
+- **Current configuration:** `[]` (no stages defined).
+- **Typical stage layout:**
 
----
+| Stage | Purpose | Common Steps |
+|-------|---------|--------------|
+| **Checkout** | Retrieve source code from SCM. | `checkout scm` |
+| **Build** | Compile source, create artifacts. | `sh 'mvn clean package'` |
+| **Test** | Execute unit/integration tests. | `sh 'mvn test'` |
+| **Static Analysis** | Run code quality tools (e.g., SonarQube). | `withSonarQubeEnv('MySonar') { sh 'mvn sonar:sonar' }` |
+| **Publish** | Archive artifacts, push to repository. | `archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true` |
+| **Deploy** | Deploy to target environment. | `sh './deploy.sh'` |
 
-## 4. Detailed Step Explanations (None Defined)
+*Add stages as needed to reflect your CI/CD workflow.*
 
-When adding steps, consider the following common commands and their purposes:
+### 2.3 Environment Variables
 
-| Command | Purpose |
-|---------|---------|
-| `sh '…'` | Executes a shell script on the agent (Linux/macOS). |
-| `bat '…'` | Executes a batch script on Windows agents. |
-| `checkout scm` | Checks out the source code defined in the job’s SCM configuration. |
-| `archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true` | Archives build artifacts for later retrieval. |
-| `junit '**/target/surefire-reports/*.xml'` | Publishes JUnit test results. |
-| `withCredentials([...]) { … }` | Provides secure access to credentials stored in Jenkins. |
-
-Add the appropriate step(s) inside each stage’s `steps` block.
-
----
-
-## 5. Usage Instructions for Developers
-
-### 5.1 Triggering the Pipeline
-- **Manual Trigger:** Click **Build Now** on the pipeline’s Jenkins job page.
-- **SCM Trigger:** Configure a webhook or poll SCM to start the pipeline on code changes.
-- **Parameterized Trigger:** If you add parameters, use the **Build with Parameters** option.
-
-### 5.2 Monitoring Execution
-- **Blue Ocean / Classic UI:** View real‑time stage progress and console output.
-- **Console Log:** Click **Console Output** for detailed logs.
-- **Build History:** Use the build list to inspect past runs, artifacts, and test reports.
-
-### 5.3 Troubleshooting Common Issues
-| Symptom | Likely Cause | Suggested Fix |
-|---------|--------------|---------------|
-| Pipeline fails at the first step | No agent defined or agent unavailable | Define a valid `agent` (e.g., `agent any` or a label that matches a configured node). |
-| “No such file or directory” errors | Missing workspace files or incorrect paths | Ensure `checkout scm` runs before referencing source files, and verify path correctness. |
-| Credentials not found | Missing or misnamed credentials | Add the required credentials in **Jenkins > Credentials** and reference them correctly with `withCredentials`. |
-| Stages are skipped | `when` condition evaluates to false | Review the `when` clause logic and adjust conditions or branch names. |
-
----
-
-## 6. Environment Variables (None Defined)
-
-> **Note:** The pipeline currently does not declare any environment variables. Below is a template for adding them.
+- **Current configuration:** `{}` (none defined).
+- **Typical usage:** Declare variables that are required across stages (e.g., credentials, version numbers, paths).
 
 ```groovy
 environment {
-    // Example: Set a Java home path
     JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-
-    // Example: Use a credential (masked in logs)
-    MY_SECRET = credentials('my-secret-id')
+    MAVEN_OPTS = '-Xmx2g'
+    DOCKER_REGISTRY = 'registry.example.com'
+    // Credentials can be referenced securely:
+    // DOCKER_CRED = credentials('docker-registry-cred')
 }
 ```
 
-### Commonly Used Variables (Add as needed)
+### 2.4 Post Actions
 
-| Variable | Description |
-|----------|-------------|
-| `BUILD_NUMBER` | Auto‑generated build identifier. |
-| `BRANCH_NAME` | Name of the Git branch being built (when using Multibranch Pipeline). |
-| `WORKSPACE` | Absolute path to the workspace directory on the agent. |
-| `GIT_COMMIT` | SHA‑1 of the commit being built. |
-| `MY_SECRET` | Example of a secret injected via Jenkins credentials. |
+- **Current configuration:** `{}` (no post actions).
+- **Typical post sections:** `always`, `success`, `failure`, `unstable`, `changed`.
+
+```groovy
+post {
+    always {
+        cleanWs()
+    }
+    success {
+        echo 'Pipeline succeeded!'
+    }
+    failure {
+        mail to: 'dev-team@example.com',
+             subject: "Pipeline FAILED: ${currentBuild.fullDisplayName}",
+             body: "Check console output at ${env.BUILD_URL}"
+    }
+}
+```
 
 ---
 
-## 7. Next Steps for Completion
+## 3. Detailed Step Explanations (Template)
 
-1. **Define an Agent** – Choose `agent any` for a generic node or specify a label for a dedicated executor.
-2. **Add Stages** – Outline the CI/CD workflow (e.g., *Checkout → Build → Test → Deploy*).
-3. **Populate Environment** – Declare any required variables, including credentials.
-4. **Implement Post Actions** – Add cleanup, notifications, or archiving steps as needed.
-5. **Validate** – Run a test build to ensure the pipeline executes as expected.
+Below is a template for common steps you may include in each stage. Replace the placeholders with actual commands relevant to your project.
 
-Once these elements are added, update this documentation to reflect the concrete stages, steps, and environment settings.
+| Step | Command | Role |
+|------|---------|------|
+| **Checkout SCM** | `checkout scm` | Pulls the latest code from the configured source control repository. |
+| **Build** | `sh 'mvn clean package -DskipTests'` | Compiles the code and packages it into a distributable artifact (e.g., JAR, WAR). |
+| **Run Tests** | `sh 'mvn test'` | Executes unit and integration tests, failing the pipeline on test failures. |
+| **Static Code Analysis** | `withSonarQubeEnv('MySonar') { sh 'mvn sonar:sonar' }` | Sends code metrics to SonarQube for quality gating. |
+| **Archive Artifacts** | `archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true` | Stores build outputs in Jenkins for later retrieval. |
+| **Docker Build & Push** | `sh 'docker build -t $DOCKER_REGISTRY/myapp:${env.BUILD_NUMBER} .'`<br>`sh 'docker push $DOCKER_REGISTRY/myapp:${env.BUILD_NUMBER}'` | Builds a Docker image and pushes it to a registry. |
+| **Deploy** | `sh './deploy.sh ${env.BUILD_NUMBER}'` | Executes deployment scripts against the target environment. |
+
+---
+
+## 4. Usage Instructions for Developers
+
+### 4.1 Triggering the Pipeline
+
+| Method | Description |
+|--------|-------------|
+| **Manual** | Click **Build Now** on the pipeline job page in Jenkins. |
+| **SCM Change** | Configure the job with a webhook or polling to trigger on commits/pull‑requests. |
+| **Parameterized Build** | Add `parameters {}` block to allow developers to pass values (e.g., branch, version). |
+| **API** | Use Jenkins REST API: `POST JENKINS_URL/job/your-pipeline/build?token=YOUR_TOKEN` |
+
+### 4.2 Monitoring Execution
+
+- **Blue Ocean UI** – Provides a visual representation of stages and step logs.
+- **Classic Console Output** – Click **Console Output** for real‑time logs.
+- **Build History** – Review past runs, status icons, and duration.
+
+### 4.3 Troubleshooting Common Issues
+
+| Symptom | Likely Cause | Suggested Fix |
+|---------|--------------|---------------|
+| **Pipeline fails at checkout** | SCM credentials missing or wrong URL. | Verify `credentialsId` and repository URL in the `checkout` step. |
+| **Build step “sh” not found** | Agent does not have required tools (e.g., Maven, Docker). | Ensure the agent image/container includes the necessary binaries or install them in a `setup` stage. |
+| **Environment variable is empty** | Variable not defined or mis‑spelled. | Confirm the variable name in the `environment` block and usage in scripts. |
+| **Post actions not executed** | `post` block missing or syntax error. | Add a correctly indented `post` block at the pipeline root level. |
+| **Pipeline hangs** | Long‑running command without output or deadlock. | Add timeout wrappers: `timeout(time: 30, unit: 'MINUTES') { sh '...' }`. |
+
+---
+
+## 5. Environment Variables Reference
+
+| Variable | Scope | Description | Default / Example |
+|----------|-------|-------------|-------------------|
+| `JAVA_HOME` | Global | Path to the JDK used by build tools. | `/usr/lib/jvm/java-11-openjdk` |
+| `MAVEN_OPTS` | Global | JVM options for Maven (memory, etc.). | `-Xmx2g` |
+| `DOCKER_REGISTRY` | Global | URL of the Docker registry for image pushes. | `registry.example.com` |
+| `BUILD_NUMBER` | Jenkins | Auto‑generated build identifier. | `42` |
+| `GIT_COMMIT` | Jenkins | SHA of the commit being built. | `a1b2c3d4` |
+| `BRANCH_NAME` | Jenkins | Name of the source branch. | `main` |
+| `CREDENTIALS_ID` | Global (optional) | ID of stored credentials (e.g., for Docker registry). | `docker-registry-cred` |
+
+*Add or modify variables as required by your pipeline logic.*
+
+---
+
+## 6. Next Steps
+
+1. **Define the agent** – Choose an appropriate executor (label, Docker, or Kubernetes pod).  
+2. **Add stages** – Populate the `stages` array with the workflow steps needed for your project.  
+3. **Set environment variables** – Declare any required variables, especially credentials, in the `environment` block.  
+4. **Implement post actions** – Add cleanup, notifications, or reporting steps.  
+5. **Validate** – Run the pipeline on a test branch, review logs, and adjust as needed.
+
+Once these elements are in place, the pipeline will provide a reliable, repeatable CI/CD process for the development team.
