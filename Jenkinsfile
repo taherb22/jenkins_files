@@ -10,8 +10,7 @@ pipeline {
 
     stages {
         stage('Initialize') {
-            steps {
-                
+            steps { 
                 if (params.BRANCH_NAME == null || params.BRANCH_NAME.trim().isEmpty()) {
                         error 'Branch name is required and cannot be empty'
                 }
