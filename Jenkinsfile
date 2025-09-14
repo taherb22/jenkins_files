@@ -1,12 +1,11 @@
 pipeline {
-    agent { label 'trusted-builder' }
-
+    agent { label 'builder' }
+    
     stages {
-        stage('Build and Test') {
+        stage('Test') {
             steps {
-                echo 'Running build and test procedures...'
-                sh './run_tests.sh'
+                echo "This will fail to parse"
             }
         }
+    // Missing closing brace here
     }
-}
