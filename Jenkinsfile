@@ -1,23 +1,12 @@
 pipeline {
-    agent { label 'docker-builder' }
-    
+    agent { label 'trusted-builder' }
+
     stages {
-        stage('Build') {
+        stage('Build and Test') {
             steps {
-                sh 'docker build . -t my-app:latest'
+                echo 'Running build and test procedures...'
+                sh './run_tests.sh'
             }
         }
-        stage('Deploy to Production') {
-            when { 
-                expression { params.CONFIRM == true } // Flaw: No check on the branch name!
-            }
-            steps {
-                echo 'Deploying to Production Environment!'
-                sh 'kubectl apply -f production.yaml'
-            }
-        }
-    }
-    parameters {
-        booleanParam(name: 'CONFIRM', defaultValue: false, description: 'Confirm deployment to production')
     }
 }
