@@ -1,19 +1,23 @@
 pipeline {
-    agent any // Vulnerability 1: Non-restrictive agent
-
-    environment {
-        AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE" // Vulnerability 2: Hardcoded Secret
-    }
-
+    agent { label 'docker-builder' }
+    
     stages {
-        stage('Deploy') {
+        stage('Build') {
             steps {
-                script {
-                    // Vulnerability 3: Potential for Command Injection
-                    sh "ansible-playbook -i inventory.ini deploy.yml --extra-vars 'version=${params.VERSION}'"
-                }
+                sh 'docker build . -t my-app:latest'
+            }
+        }
+        stage('Deploy to Production') {
+            when { 
+                expression { params.CONFIRM == true } // Flaw: No check on the branch name!
+            }
+            steps {
+                echo 'Deploying to Production Environment!'
+                sh 'kubectl apply -f production.yaml'
             }
         }
     }
-
-}    
+    parameters {
+        booleanParam(name: 'CONFIRM', defaultValue: false, description: 'Confirm deployment to production')
+    }
+}
