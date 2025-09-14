@@ -1,28 +1,18 @@
 pipeline {
-    agent {
-        label 'secure-agent'
-    }
+    agent any // Vulnerability 1: Non-restrictive agent
 
     environment {
-        API_TOKEN = credentials('my-api-token')
-        DISABLE_INSECURE_FEATURES = true
+        AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE" // Vulnerability 2: Hardcoded Secret
     }
 
-
-
     stages {
-        stage('Initialize') {
-            steps { 
-                if (params.BRANCH_NAME == null || params.BRANCH_NAME.trim().isEmpty()) {
-                        error 'Branch name is required and cannot be empty'
+        stage('Deploy') {
+            steps {
+                script {
+                    // Vulnerability 3: Potential for Command Injection
+                    sh "ansible-playbook -i inventory.ini deploy.yml --extra-vars 'version=${params.VERSION}'"
                 }
             }
         }
     }
-
-
 }
-
-
-
-    
